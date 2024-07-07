@@ -16,6 +16,15 @@
             <a href="/users/{{ user.id }}">@{{ user.username }}</a>
             <span class="text-muted">{{ message.timestamp.strftime('%d %B %Y') }}</span>
             <p>{{ message.text }}</p>
+
+            {% set liked = message.id in liked_message_ids %}
+            {% set btn_class = 'btn-primary' if liked else 'btn-secondary' %}
+
+                <form method="POST" action="/users/add-like/{{ message.id }}" id="messages-form">
+                  <button type="submit" class="btn btn-sm {{ btn_class }}">
+                    <i class="fa fa-thumbs-up"></i> 
+                  </button>
+                </form>
           </div>
         </li>
 

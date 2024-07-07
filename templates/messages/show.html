@@ -20,10 +20,18 @@
                     <button class="btn btn-outline-danger">Delete</button>
                   </form>
                 {% elif g.user.is_following(message.user) %}
+                {% set btn_class = 'btn-primary' if like else 'btn-secondary' %}
+                <form method="POST" action="/users/add-like/{{ message.id }}" id="messages-form">
+                  <button class="btn btn-sm {{ btn_class }}">
+                    <i class="fa fa-thumbs-up {{ icon_class }}"></i> 
+                  </button>
+                </form>
+                <div class="container">
                   <form method="POST"
                         action="/users/stop-following/{{ message.user.id }}">
                     <button class="btn btn-primary">Unfollow</button>
                   </form>
+                </div>
                 {% else %}
                   <form method="POST" action="/users/follow/{{ message.user.id }}">
                     <button class="btn btn-outline-primary btn-sm">Follow</button>

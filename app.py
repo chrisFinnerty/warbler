@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, EditProfileForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -145,7 +145,7 @@ def create_app(db_name, testing=False):
         return render_template('users/index.html', users=users)
 
 
-    @app.route('/users/<int:user_id>')
+    @app.route('/users/<int:user_id>', methods=['GET', 'POST'])
     def users_show(user_id):
         """Show user profile."""
 
@@ -160,9 +160,22 @@ def create_app(db_name, testing=False):
                     .limit(100)
                     .all())
         
+        if user_id != g.user.id:
+            likes = (Likes.query.filter_by(user_id=user_id).all())
+            liked_message_ids = {like.message_id for like in likes}
+        
         location = user.location
         bio = user.bio
         header_image_url = user.header_image_url
+
+        if request.method == 'POST':
+            if not g.user:
+                flash('Access unauthorized.', 'danger')
+                return redirect('/')
+            
+            message_id = request.form.get('message_id')
+            was_liked = toggle_like_message(g.user.id, message_id)
+            liked_message_ids = set(Likes.query.filter_by(user_id=user_id).all())
 
         return render_template('users/show.html', user=user, messages=messages, location=location, bio=bio, header_image_url=header_image_url)
 
@@ -293,12 +306,23 @@ def create_app(db_name, testing=False):
         return render_template('messages/new.html', form=form)
 
 
-    @app.route('/messages/<int:message_id>', methods=["GET"])
+    @app.route('/messages/<int:message_id>', methods=["GET", "POST"])
     def messages_show(message_id):
-        """Show a message."""
+        """Show a message. Also added functionality to like the message in this view."""
 
         msg = Message.query.get(message_id)
-        return render_template('messages/show.html', message=msg)
+        like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
+        
+        if request.method == 'POST':
+            if not g.user:
+                flash('Access unauthorized.', 'danger')
+                return redirect('/')
+            
+            was_liked = toggle_like_message(g.user.id, message_id)
+
+            return redirect(url_for('messages_show'), message_id=message_id)
+        
+        return render_template('messages/show.html', message=msg, like=like)
 
 
     @app.route('/messages/<int:message_id>/delete', methods=["POST"])
@@ -315,6 +339,36 @@ def create_app(db_name, testing=False):
 
         return redirect(f"/users/{g.user.id}")
 
+
+    ##############################################################################
+    # Likes routes:
+
+    def toggle_like_message(user_id, message_id):
+        """Used to toggle likes on messages (like/unlike)."""
+
+        like = Likes.query.filter_by(user_id=user_id, message_id=message_id).first()
+
+        if like:
+            db.session.delete(like)
+            db.session.commit()
+            return False
+        else:
+            new_like = Likes(user_id=user_id, message_id=message_id)
+            db.session.add(new_like)
+            db.session.commit()
+            return True
+        
+    @app.route('/users/add-like/<int:msg_id>', methods=['POST'])
+    def like_msg(msg_id):
+        """Post route to like a message."""
+
+        if not g.user:
+            flash('Access unauthorized.', 'danger')
+            return redirect('/')
+        
+        was_liked = toggle_like_message(g.user.id, msg_id)
+        
+        return redirect(request.referrer)
 
     ##############################################################################
     # Homepage and error pages
@@ -336,8 +390,10 @@ def create_app(db_name, testing=False):
                         .order_by(Message.timestamp.desc())
                         .limit(100)
                         .all())
+            likes = (Likes.query.filter(Likes.user_id == g.user.id).all())
+            liked_message_ids = {like.message_id for like in likes}
 
-            return render_template('home.html', messages=messages)
+            return render_template('home.html', messages=messages, likes=likes, liked_message_ids=liked_message_ids)
 
         else:
             return render_template('home-anon.html')

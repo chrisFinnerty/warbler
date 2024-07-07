@@ -51,15 +51,17 @@
               <span class="text-muted">{{ msg.timestamp.strftime('%d %B %Y') }}</span>
               <p>{{ msg.text }}</p>
             </div>
-            <form method="POST" action="/users/add_like/{{ msg.id }}" id="messages-form">
-              <button class="
-                btn 
-                btn-sm 
-                {{'btn-primary' if msg.id in likes else 'btn-secondary'}}"
-              >
-                <i class="fa fa-thumbs-up"></i> 
+
+            {% set liked = msg.id in liked_message_ids %}
+            {% set btn_class = 'btn-primary' if liked else 'btn-secondary' %}
+            {% set icon_class = 'liked' if liked else '' %}
+
+            <form method="POST" action="/users/add-like/{{ msg.id }}" id="messages-form">
+              <button class="btn btn-sm {{ btn_class }}">
+                <i class="fa fa-thumbs-up {{ icon_class }}"></i> 
               </button>
             </form>
+            {% else %}
           </li>
         {% endfor %}
       </ul>
