@@ -19,7 +19,7 @@ from models import db, User, Message, Follows, Likes
 
 # os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
-app = create_app('warbler-test', testing=True)
+app = create_app('postgresql://postgres:postgres@localhost:5432/warbler-test', testing=True)
 
 
 # Now we can import app
