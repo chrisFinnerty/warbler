@@ -1,6 +1,5 @@
 """SQLAlchemy models for Warbler."""
 
-import pdb
 from datetime import datetime
 
 from flask_bcrypt import Bcrypt

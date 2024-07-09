@@ -3,16 +3,15 @@ import os
 
 from dotenv import load_dotenv
 from csv import DictReader
-from app import db, create_app
-from models import User, Message, Follows
+from app import db, app
+from models import User, Message, Follows, connect_db
 
 load_dotenv()
-
-app = create_app(os.environ.get('DATABASE_URL'))
+connect_db(app)
 
 with app.app_context():
-    # db.drop_all()
-    # db.create_all()
+    db.drop_all()
+    db.create_all()
 
     with open('generator/users.csv') as users:
         db.session.bulk_insert_mappings(User, DictReader(users))
