@@ -19,6 +19,7 @@ Flask-DebugToolbar
 Flask-SQLAlchemy
 Flask-WTF
 greenlet
+gunicorn
 idna
 iniconfig
 ipython
