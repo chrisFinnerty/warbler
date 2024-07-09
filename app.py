@@ -460,7 +460,7 @@ def create_app(db_name, testing=False):
     
     return app
 
-if __name__ == '__main__':
-    app = create_app(os.environ.get('DATABASE_URL'), testing=True)
-    print(os.environ.get('DATABASE_URL'))
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     app = create_app(os.environ.get('DATABASE_URL'), testing=True)
+#     print(os.environ.get('DATABASE_URL'))
+#     app.run(debug=True)
