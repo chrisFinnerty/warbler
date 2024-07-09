@@ -23,7 +23,7 @@ from datetime import datetime
 
 from app import create_app
 
-app = create_app('postgresql://postgres:postgres@localhost:5432/warbler-test', testing=True)
+app = create_app('postgresql:///warbler-test', testing=True)
 
 # Create our tables (we do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data

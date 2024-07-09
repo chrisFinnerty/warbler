@@ -17,7 +17,7 @@ from models import db, connect_db, Message, User, Likes, Follows
 
 # os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
-app = create_app('postgresql://postgres:postgres@localhost:5432/warbler-test', testing=True)
+app = create_app('postgresql:///warbler-test', testing=True)
 
 # Don't have WTForms use CSRF at all, since it's a pain to test
 app.config['WTF_CSRF_ENABLED'] = False
