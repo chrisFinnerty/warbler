@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, flash, redirect, session, g, url_for, abort
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import create_engine
 
 from forms import UserAddForm, LoginForm, MessageForm, EditProfileForm
 from models import db, connect_db, User, Message, Likes
@@ -31,6 +32,13 @@ def create_app(db_name, testing=False):
     # toolbar = DebugToolbarExtension(app)
 
     connect_db(app)
+
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    try:
+        with engine.connect() as connection:
+            print("Database connection successful")
+    except Exception as e:
+        print(f'Database connection failed: {eval}')
 
 
     ##############################################################################
@@ -165,9 +173,9 @@ def create_app(db_name, testing=False):
                     .limit(100)
                     .all())
         
-        if g.user and user_id != g.user.id:
-            likes = (Likes.query.filter_by(user_id=user_id).all())
-            liked_message_ids = {like.message_id for like in likes}
+ 
+        likes = (Likes.query.filter_by(user_id=user_id).all())
+        liked_message_ids = {like.message_id for like in likes}
         
         location = user.location
         bio = user.bio
@@ -453,5 +461,6 @@ def create_app(db_name, testing=False):
     return app
 
 if __name__ == '__main__':
-    app = create_app('warbler', testing=True)
+    app = create_app(os.environ.get('DATABASE_URL'), testing=True)
+    print(os.environ.get('DATABASE_URL'))
     app.run(debug=True)
