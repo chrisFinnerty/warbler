@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g, url_for
+from flask import Flask, render_template, request, flash, redirect, session, g, url_for, abort
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
@@ -26,7 +26,7 @@ def create_app(db_name, testing=False):
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_ECHO'] = True
 
-    toolbar = DebugToolbarExtension(app)
+    # toolbar = DebugToolbarExtension(app)
 
     connect_db(app)
 
@@ -150,6 +150,9 @@ def create_app(db_name, testing=False):
         """Show user profile."""
 
         user = User.query.get_or_404(user_id)
+        liked_message_ids = []
+
+        likes_count = len(user.likes)
 
         # snagging messages in order from the database;
         # user.messages won't be in order by default
@@ -160,7 +163,7 @@ def create_app(db_name, testing=False):
                     .limit(100)
                     .all())
         
-        if user_id != g.user.id:
+        if g.user and user_id != g.user.id:
             likes = (Likes.query.filter_by(user_id=user_id).all())
             liked_message_ids = {like.message_id for like in likes}
         
@@ -169,7 +172,7 @@ def create_app(db_name, testing=False):
         header_image_url = user.header_image_url
 
         if request.method == 'POST':
-            if not g.user:
+            if not g.user or g.user.id != user_id:
                 flash('Access unauthorized.', 'danger')
                 return redirect('/')
             
@@ -177,7 +180,7 @@ def create_app(db_name, testing=False):
             was_liked = toggle_like_message(g.user.id, message_id)
             liked_message_ids = set(Likes.query.filter_by(user_id=user_id).all())
 
-        return render_template('users/show.html', user=user, messages=messages, location=location, bio=bio, header_image_url=header_image_url)
+        return render_template('users/show.html', user=user, messages=messages, location=location, bio=bio, header_image_url=header_image_url, likes_count=likes_count, liked_message_ids=liked_message_ids)
 
 
     @app.route('/users/<int:user_id>/following')
@@ -189,7 +192,10 @@ def create_app(db_name, testing=False):
             return redirect("/")
 
         user = User.query.get_or_404(user_id)
-        return render_template('users/following.html', user=user)
+
+        likes_count = len(user.likes)
+        
+        return render_template('users/following.html', user=user, likes_count=likes_count)
 
 
     @app.route('/users/<int:user_id>/followers')
@@ -201,7 +207,9 @@ def create_app(db_name, testing=False):
             return redirect("/")
 
         user = User.query.get_or_404(user_id)
-        return render_template('users/followers.html', user=user)
+        likes_count = len(user.likes)
+
+        return render_template('users/followers.html', user=user, likes_count=likes_count)
 
 
     @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -312,9 +320,12 @@ def create_app(db_name, testing=False):
 
         msg = Message.query.get(message_id)
         like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
+
+        if msg is None:
+            abort(404)
         
         if request.method == 'POST':
-            if not g.user:
+            if not g.user or g.user.id != msg.user_id:
                 flash('Access unauthorized.', 'danger')
                 return redirect('/')
             
@@ -330,10 +341,15 @@ def create_app(db_name, testing=False):
         """Delete a message."""
 
         if not g.user:
-            flash("Access unauthorized.", "danger")
+            flash("Access unauthorized", "danger")
             return redirect("/")
 
         msg = Message.query.get(message_id)
+
+        if msg.user_id != g.user.id:
+            flash('Access unauthorized', 'danger')
+            return redirect('/')
+        
         db.session.delete(msg)
         db.session.commit()
 
@@ -369,6 +385,22 @@ def create_app(db_name, testing=False):
         was_liked = toggle_like_message(g.user.id, msg_id)
         
         return redirect(request.referrer)
+    
+    @app.route('/users/<int:user_id>/liked-messages')
+    def show_liked_messages(user_id):
+        """Route user to see what messages they have liked. 
+        Originates from user clicking "Likes" link on any user profile."""
+
+        if not g.user:
+            flash('Access unauthorized.', 'danger')
+            return('/')
+        
+        user = User.query.get_or_404(user_id)
+        
+        liked_messages = Message.query.join(Likes).filter(Likes.user_id == user_id).order_by(Message.timestamp.desc()).all()
+        likes_count = len(user.likes)
+
+        return render_template('/messages/liked-messages.html', user=user, liked_messages=liked_messages, likes_count=likes_count)
 
     ##############################################################################
     # Homepage and error pages
