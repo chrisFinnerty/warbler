@@ -31,7 +31,7 @@ def create_app(db_name, testing=False):
 
     # toolbar = DebugToolbarExtension(app)
 
-    connect_db(app)
+    # connect_db(app)
 
     engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     try:
